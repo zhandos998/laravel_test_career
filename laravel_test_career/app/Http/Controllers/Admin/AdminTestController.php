@@ -21,6 +21,47 @@ class AdminTestController extends Controller
         $this->middleware('role:admin');
     }
 
+    public function test($id)
+    {
+        $test = DB::table('tests')
+        ->where("id",$id)
+        ->first();
+
+        $quests = DB::table('quests')
+        ->where("test_id",$id)
+        ->orderBy('numering')
+        ->get();
+        // dd($quests);
+        foreach ($quests as $key => $value) {
+            $answers = DB::table('answers')
+            ->where("quest_id",$value->id)
+            ->get();
+            $quests[$key]->answers = $answers;
+        }
+
+        $users = DB::table('testeds')
+        ->where("test_id",$id)
+        ->join("users",'users.id','testeds.user_id')
+        ->select('users.*','testeds.id as tested_id')
+        ->get();
+
+        foreach ($users as $key => $value) {
+            $answereds = DB::table('answereds')
+            ->where("tested_id",$value->tested_id)
+            ->orderBy('numbering')
+            ->get();
+            // dd($answereds);
+            $users[$key]->answereds = $answereds;
+        }
+
+        return view('admin.test.test',[
+            'test'=>$test,
+            'quests'=>$quests,
+            'users'=>$users,
+            
+        ]);
+    }
+
     public function view_tests()
     {
         $tests = DB::table('tests')
@@ -34,12 +75,23 @@ class AdminTestController extends Controller
     public function add_test(Request $request)
     {
         if ($request->isMethod('post')){
-
+            // dd($request);
             $test = new Test();
             $test->name = $request->name;
-            $test->pretty_url = $request->pretty_url;
             $test->save();
-
+            foreach ($request->question as $key => $value) {
+                $quest_id = DB::table('quests')
+                ->insertGetId([
+                    'test_id'=>$test->id,
+                    'quest'=>$value['name'],
+                    'numering'=>$key,
+                    'correct'=>$request->answer[$key][$value['correct']]['liter'],
+                ]);
+                foreach ($request->answer[$key] as $value_answer) {
+                    DB::table('answers')
+                    ->insert(['quest_id'=>$quest_id,'answer'=>$value_answer['answer'],'liter'=>$value_answer['liter']]);
+                }
+            }
             return redirect("admin/tests");
         }
 
@@ -54,16 +106,40 @@ class AdminTestController extends Controller
             ->where('id',$id)
             ->update([
                 'name'=> $request->name,
-                'pretty_url'=> $request->pretty_url,
             ]);
+            
+            DB::table('quests')
+            ->where('test_id',$id)
+            ->delete();
+
+            foreach ($request->question as $key => $value) {
+                $quest_id = DB::table('quests')
+                ->insertGetId(['test_id'=>$id,'quest'=>$value]);
+                foreach ($request->answer[$key] as $value_answer) {
+                    DB::table('answers')
+                    ->insert(['quest_id'=>$quest_id,'answer'=>$value_answer['answer'],'liter'=>$value_answer['liter']]);
+                }
+            }
             return redirect("admin/tests");
         }
         $test = DB::table('tests')
         ->where("id",$id)
         ->first();
 
+        $quests = DB::table('quests')
+        ->where("test_id",$id)
+        ->get();
+        foreach ($quests as $key => $value) {
+            $answers = DB::table('answers')
+            ->where("quest_id",$value->id)
+            ->get();
+            // dd($answers);
+            $quests[$key]->answers = $answers;
+        }
+        // dd($quests);
         return view('admin.test.change_test',[
             'test'=>$test,
+            'quests'=>$quests,
         ]);
     }
 

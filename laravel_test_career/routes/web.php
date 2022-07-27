@@ -13,9 +13,11 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+Route::get('/tests', [App\Http\Controllers\HomeController::class, 'tests'])->name('tests');
+Route::get('/test/{id}', [App\Http\Controllers\HomeController::class, 'test'])->name('test');
+Route::post('/test/{id}', [App\Http\Controllers\HomeController::class, 'test'])->name('test');
+
 
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -23,6 +25,7 @@ Route::get('/dashboard', function () {
 
 
 Route::get('/admin/tests', [App\Http\Controllers\Admin\AdminTestController::class, 'view_tests'])->name('view_tests');
+Route::get('/admin/test/{id}', [App\Http\Controllers\Admin\AdminTestController::class, 'test'])->name('test');
 Route::get('/admin/add_test', [App\Http\Controllers\Admin\AdminTestController::class, 'add_test'])->name('add_test');
 Route::post('/admin/add_test', [App\Http\Controllers\Admin\AdminTestController::class, 'add_test'])->name('add_test');
 Route::get('/admin/change_test/{id}', [App\Http\Controllers\Admin\AdminTestController::class, 'change_test'])->name('change_test');
